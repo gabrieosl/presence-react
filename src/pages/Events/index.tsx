@@ -18,6 +18,11 @@ import { useAuth } from '../../hook/auth';
 
 import styles from './styles';
 
+interface AttendeeProps {
+  userId: string;
+  userName: string;
+}
+
 const Events: React.FC = () => {
   const { firebase } = useAuth();
 
@@ -25,6 +30,8 @@ const Events: React.FC = () => {
   const [eventName, setEventName] = useState('');
   const [maxAttendees, setMaxAttendees] = useState<number | null>(null);
   const [eventDate, setEventDate] = useState(new Date());
+  const [currentlySeeingAttendees, setCurrentlySeeingAttendees] = useState('');
+  const [attendees, setAttendees] = useState<AttendeeProps[]>([]);
   const classes = styles();
 
   const handleCreate = useCallback(() => {
@@ -49,6 +56,27 @@ const Events: React.FC = () => {
     },
     [firebase],
   );
+
+  useEffect(() => {
+    async function getData() {
+      console.log('getting data');
+      const data = await firebase.database
+        .collection(`events/${currentlySeeingAttendees}/confirmed`)
+        .get();
+
+      const parsedData: AttendeeProps[] = [];
+      data.forEach(doc => {
+        parsedData.push({
+          userId: doc.get('userId'),
+          userName: doc.get('userName'),
+        });
+      });
+
+      console.log('setting data', parsedData);
+      setAttendees(parsedData);
+    }
+    if (currentlySeeingAttendees.length) getData();
+  }, [currentlySeeingAttendees, firebase]);
 
   useEffect(() => {
     firebase.database
@@ -84,33 +112,51 @@ const Events: React.FC = () => {
               <TableCell>Max. Participantes</TableCell>
               <TableCell>Confirmados</TableCell>
               <TableCell>Data/Hora</TableCell>
+              <TableCell>Ver confirmados</TableCell>
               <TableCell>Deletar</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {events.map((event, index) => (
-              <TableRow key={event.id}>
-                <TableCell>{index}</TableCell>
-                <TableCell>{event.name}</TableCell>
-                <TableCell>{event.maxAttendees}</TableCell>
-                <TableCell>{event.confirmedCount}</TableCell>
-                <TableCell>
-                  {format(
-                    new Date(event.date.seconds * 1000),
-                    "dd'/'MM'/'yyyy' - 'HH':'mm",
-                    { locale: pt },
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={() => handleDelete(event.id)}
-                  >
-                    DEL
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <>
+                <TableRow key={event.id}>
+                  <TableCell>{index}</TableCell>
+                  <TableCell>{event.name}</TableCell>
+                  <TableCell>{event.maxAttendees}</TableCell>
+                  <TableCell>{event.confirmedCount}</TableCell>
+                  <TableCell>
+                    {format(
+                      new Date(event.date.seconds * 1000),
+                      "dd'/'MM'/'yyyy' - 'HH':'mm",
+                      { locale: pt },
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => setCurrentlySeeingAttendees(event.id)}
+                    >
+                      VER
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => handleDelete(event.id)}
+                    >
+                      DEL
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                {currentlySeeingAttendees === event.id &&
+                  attendees.map(attendee => (
+                    <TableRow key={attendee.userId}>
+                      <TableCell>{attendee.userName}</TableCell>
+                    </TableRow>
+                  ))}
+              </>
             ))}
           </TableBody>
         </TableContainer>
@@ -151,7 +197,6 @@ const Events: React.FC = () => {
             InputLabelProps={{
               shrink: true,
             }}
-            value={eventDate.toISOString()}
             onChange={e => setEventDate(new Date(e.target.value))}
             className={classes.input}
           />

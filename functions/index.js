@@ -79,7 +79,7 @@ exports.confirmPresence = functions
       await snap.ref.set({ response: 'confirmed' }, { merge: true });
       await db
         .collection(`events/${eventId}/confirmed`)
-        .add({ userId, eventDate });
+        .add({ userId, userName: snap.get('userName'), eventDate });
       return eventDoc.ref.set(
         { confirmedCount: confirmedCount + 1 },
         { merge: true },
