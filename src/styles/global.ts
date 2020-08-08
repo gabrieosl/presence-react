@@ -16,8 +16,13 @@ export default createGlobalStyle`
     height: 100%;
   }
 
+  #root {
+    display: flex;
+    flex-direction: column;
+  }
+
   body {
-    -webkit-font-smoothing: antialiased
+    -webkit-font-smoothing: antialiased;
   }
 
   body, input, button {

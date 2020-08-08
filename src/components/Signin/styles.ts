@@ -2,12 +2,9 @@ import { makeStyles } from '@material-ui/core/styles';
 
 export default makeStyles(theme => ({
   container: {
-    flexGrow: 1,
+    padding: 10,
   },
-  table: {
-    maxWidth: '80%',
-  },
-  input: {
-    margin: 20,
+  button: {
+    margin: '10px 0',
   },
 }));

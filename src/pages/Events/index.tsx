@@ -1,24 +1,43 @@
+/* eslint-disable import/no-duplicates */
+/* eslint-disable no-restricted-globals */
 import React, { useState, useEffect, useCallback } from 'react';
-import DateTimePicker from 'react-datetime-picker';
+import { format } from 'date-fns';
+import pt from 'date-fns/locale/pt';
 
+import {
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Button,
+  Grid,
+  TextField,
+} from '@material-ui/core';
 import { useAuth } from '../../hook/auth';
 
-import { Container } from './styles';
+import styles from './styles';
 
 const Events: React.FC = () => {
   const { firebase } = useAuth();
 
   const [events, setEvents] = useState<any[]>([]);
   const [eventName, setEventName] = useState('');
-  const [eventCapacity, setEventCapacity] = useState(0);
+  const [maxAttendees, setMaxAttendees] = useState<number | null>(null);
   const [eventDate, setEventDate] = useState(new Date());
+  const classes = styles();
 
   const handleCreate = useCallback(() => {
     firebase.database
       .collection('events')
-      .add({ name: eventName, date: eventDate })
-      .then(() => console.log(`added ${eventName} successfully`));
-  }, [firebase, eventName]);
+      .add({
+        name: eventName,
+        date: eventDate,
+        maxAttendees,
+        confirmedCount: 0,
+      })
+      .then(() => location.reload());
+  }, [firebase, eventName, eventDate, maxAttendees]);
 
   const handleDelete = useCallback(
     id => {
@@ -26,7 +45,7 @@ const Events: React.FC = () => {
         .collection('events')
         .doc(id)
         .delete()
-        .then(() => console.log(`deleted ${id} successfully`));
+        .then(() => location.reload());
     },
     [firebase],
   );
@@ -50,34 +69,105 @@ const Events: React.FC = () => {
   }, [firebase]);
 
   return (
-    <Container>
-      <div className="events-holder">
-        {events.map(event => (
-          <div key={event.id} className="event">
-            <strong>{event.name}</strong>
-            <p>{String(new Date(event.date.seconds * 1000))}</p>
-            <button type="button" onClick={() => handleDelete(event.id)}>
-              Del
-            </button>
-          </div>
-        ))}
-      </div>
-      <div className="new-event">
-        <input
-          type="text"
-          value={eventName}
-          onChange={e => setEventName(e.target.value)}
-        />
-        <DateTimePicker
-          onChange={(date: Date) => setEventDate(date)}
-          value={eventDate}
-        />
-        <button type="button" onClick={handleCreate}>
-          Create
-        </button>
-        {String(eventDate)}
-      </div>
-    </Container>
+    <Grid
+      container
+      className={classes.container}
+      justify="space-around"
+      alignItems="stretch"
+    >
+      <Grid container item alignItems="center" justify="center">
+        <TableContainer className={classes.table}>
+          <TableHead>
+            <TableRow>
+              <TableCell>#</TableCell>
+              <TableCell width="50%">Título</TableCell>
+              <TableCell>Max. Participantes</TableCell>
+              <TableCell>Confirmados</TableCell>
+              <TableCell>Data/Hora</TableCell>
+              <TableCell>Deletar</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {events.map((event, index) => (
+              <TableRow key={event.id}>
+                <TableCell>{index}</TableCell>
+                <TableCell>{event.name}</TableCell>
+                <TableCell>{event.maxAttendees}</TableCell>
+                <TableCell>{event.confirmedCount}</TableCell>
+                <TableCell>
+                  {format(
+                    new Date(event.date.seconds * 1000),
+                    "dd'/'MM'/'yyyy' - 'HH':'mm",
+                    { locale: pt },
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => handleDelete(event.id)}
+                  >
+                    DEL
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </TableContainer>
+      </Grid>
+      <Grid
+        container
+        item
+        direction="column"
+        alignItems="center"
+        justify="center"
+      >
+        <Grid item>
+          <TextField
+            required
+            id="standard-required"
+            label="Título"
+            defaultValue="Hello World"
+            variant="outlined"
+            value={eventName}
+            onChange={e => setEventName(e.target.value)}
+            className={classes.input}
+          />
+          <TextField
+            required
+            id="standard-required"
+            label="Máx. participantes"
+            type="number"
+            defaultValue=""
+            variant="outlined"
+            value={maxAttendees}
+            onChange={e => setMaxAttendees(Number(e.target.value))}
+            className={classes.input}
+          />
+          <TextField
+            id="datetime-local"
+            label="Data/Hora"
+            type="datetime-local"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            value={eventDate.toISOString()}
+            onChange={e => setEventDate(new Date(e.target.value))}
+            className={classes.input}
+          />
+        </Grid>
+        <Grid item>
+          <Button variant="contained" color="primary" onClick={handleCreate}>
+            Criar
+          </Button>
+        </Grid>
+        {`Criar evento "${eventName}" para até ${maxAttendees} pessoas as ${format(
+          eventDate,
+          "dd'/'MM'/'yyyy' - 'HH':'mm",
+          { locale: pt },
+        )}`}
+      </Grid>
+    </Grid>
   );
 };
 

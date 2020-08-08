@@ -1,11 +1,10 @@
 import React, { useState, createContext, useCallback, useContext } from 'react';
-import app from 'firebase/app';
 
 import firebaseApp from '../Firebase';
 
 interface AuthState {
-  credential?: string;
-  user?: any;
+  uid?: string | undefined | null;
+  displayName?: string | undefined | null;
 }
 
 interface ContextData {
@@ -14,6 +13,7 @@ interface ContextData {
   verificationId: string | null;
   sendCodeToSignIn(phoneNumber: string): Promise<void>;
   verifyCode(code: string): void;
+  setNewName(newName: string): Promise<void>;
 }
 
 const AuthContext = createContext<ContextData>({} as ContextData);
@@ -23,32 +23,49 @@ export const AuthProvider: React.FC = ({ children }) => {
   const [user, setUser] = useState<AuthState>({});
   const [verificationId, setVerificationId] = useState<string | null>(null);
 
-  const sendCodeToSignIn = useCallback(async (phoneNumber: string) => {
-    const generatedVerificationId = await firebase.getVerificationIdForPhoneNumber(
-      phoneNumber,
-    );
-    if (generatedVerificationId) setVerificationId(generatedVerificationId);
-  }, []);
+  const sendCodeToSignIn = useCallback(
+    async (phoneNumber: string) => {
+      const generatedVerificationId = await firebase.getVerificationIdForPhoneNumber(
+        phoneNumber,
+      );
+      if (generatedVerificationId) setVerificationId(generatedVerificationId);
+    },
+    [firebase],
+  );
 
   const verifyCode = useCallback(
     async (code: string) => {
       if (!verificationId) return;
-      const { credential, user } = await firebase.verifyCode(
+      const { user: firebaseUser } = await firebase.verifyCode(
         verificationId,
         code,
       );
-      setUser({ credential: credential?.providerId, user });
+      setUser({
+        uid: firebaseUser?.uid,
+        displayName: firebaseUser?.displayName,
+      });
     },
-    [verificationId],
+    [firebase, verificationId],
   );
 
-  const signOut = useCallback(() => {
-    setUser({});
-  }, []);
+  const setNewName = useCallback(
+    async (newName: string) => {
+      await firebase.auth.currentUser?.updateProfile({ displayName: newName });
+      setUser(prev => ({ ...prev, displayName: newName }));
+    },
+    [firebase],
+  );
 
   return (
     <AuthContext.Provider
-      value={{ firebase, user, verificationId, sendCodeToSignIn, verifyCode }}
+      value={{
+        firebase,
+        user,
+        verificationId,
+        sendCodeToSignIn,
+        verifyCode,
+        setNewName,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,3 +1,5 @@
+/* eslint-disable lines-between-class-members */
+/* eslint-disable import/no-duplicates */
 import app from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/firestore';
@@ -13,13 +15,14 @@ const config = {
 };
 
 class Firebase {
-  private auth: app.auth.Auth;
+  public auth: app.auth.Auth;
   public database: app.firestore.Firestore;
 
   constructor() {
     app.initializeApp(config);
     this.auth = app.auth();
     this.database = app.firestore();
+    // this.auth.settings.appVerificationDisabledForTesting = true;
   }
 
   // Auth API
@@ -28,7 +31,7 @@ class Firebase {
   }
 
   public async getVerificationIdForPhoneNumber(phoneNumber: string) {
-    var applicationVerifier = new app.auth.RecaptchaVerifier(
+    const applicationVerifier = new app.auth.RecaptchaVerifier(
       'recaptcha-container',
     );
 
